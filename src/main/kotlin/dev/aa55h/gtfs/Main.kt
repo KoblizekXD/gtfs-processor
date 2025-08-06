@@ -36,7 +36,7 @@ fun loadCoordCache(path: Path): MutableMap<String, Pair<String, String>> {
     val cache = mutableMapOf<String, Pair<String, String>>()
     if (path.toFile().exists()) {
         path.toFile().readLines().forEach { line ->
-            val parts = line.split(",")
+            val parts = line.split("|")
             if (parts.size == 3) {
                 cache[parts[0]] = Pair(parts[1], parts[2])
             }
@@ -48,7 +48,7 @@ fun loadCoordCache(path: Path): MutableMap<String, Pair<String, String>> {
 fun saveCoordCache(path: Path, cache: Map<String, Pair<String, String>>) {
     path.toFile().bufferedWriter().use { writer ->
         cache.forEach { (key, value) ->
-            writer.write("$key,${value.first},${value.second}\n")
+            writer.write("$key|${value.first}|${value.second}\n")
         }
     }
 }

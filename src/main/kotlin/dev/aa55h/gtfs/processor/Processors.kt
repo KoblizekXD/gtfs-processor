@@ -25,26 +25,35 @@ class FixStopCoordsProcessor(val apiKey: String, val cache: MutableMap<String, P
             var invalid = 0
             stops.stops = stops.stops.parallelStream().filter {
                 if (it.stopLat == "0" || it.stopLon == "0") {
-                    cache.getOrElse(it.stopName!!) {
+                    val resulting = cache.getOrElse(it.stopName!!) {
                         val geocode = queryGeocode(apiKey, GeocodeQuery(it.stopName ?: "Undefined"))
                         if (geocode.items.isEmpty()) {
-                            println("[FixStopCoordsProcessor] No coordinates found for stop: ${it.stopName}")
                             invalid++
                             return@filter false
                         } else {
-                            val res = geocode.items.filter { res -> res.type === "poi" }
-                                .getOrElse(0) { _ ->
+                            val res = geocode.items.find { it.type == "poi" }
+                                /*.getOrElse(0) { _ ->
                                     println("[FixStopCoordsProcessor][WARN] No POI found for stop: ${it.stopName}, using first result")
+                                    invalid++
                                     return@getOrElse geocode.items[0]
-                                }
+                                }*/
+                            if (res == null) {
+                                invalid++
+                                return@filter false
+                            }
                             it.stopLat = res.position.lat.toString()
                             it.stopLon = res.position.lon.toString()
+                            cache[it.stopName!!] = it.stopLat!! to it.stopLon!!
+                            println("[FixStopCoordsProcessor] Fixed stop: ${it.stopName} to coords: ${it.stopLat}, ${it.stopLon}")
+                            return@getOrElse it.stopLat!! to it.stopLon!!
                         }
                     }
+                    it.stopLat = resulting.first
+                    it.stopLon = resulting.second
                 }
                 return@filter true
             }.toList()
-            println("[FixStopCoordsProcessor] Fixed $invalid stops with invalid coordinates in ${input.fileName}")
+            println("[FixStopCoordsProcessor] Could not fix $invalid out of ${stops.noGpsStops.size} stop coordinates in ${input.fileName}")
             stops.writeTo(input)
         }
     }
