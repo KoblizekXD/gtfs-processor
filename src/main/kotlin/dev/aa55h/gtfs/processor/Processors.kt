@@ -61,7 +61,7 @@ class FixStopCoordsProcessor(
         fixed = 0
         if (input.fileName.toString() == "stops.txt") {
             val stops = StopsFile(input)
-            stops.stops.map { stop ->
+            stops.stops = stops.stops.map { stop ->
                 return@map if (stop.hasInvalidCoords()) {
                     val cached = cache[stop.stopName]
                     if (cached != null) {
@@ -74,7 +74,6 @@ class FixStopCoordsProcessor(
             }.filterNotNull()
             println("[FixStopCoordsProcessor] Fixed $fixed stops, failed to fix $failed stops")
             stops.writeTo(input)
-            Files.write(input.resolveSibling("failed-stops.txt"), failed.map { it + "\n" })
         }
     }
     
