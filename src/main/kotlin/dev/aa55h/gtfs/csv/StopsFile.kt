@@ -21,8 +21,7 @@ data class StopsFile(val path: Path) {
     
     val noGpsStops: List<Stop> by lazy {
         stops.filter { 
-            it.stopLat.isNullOrBlank() || it.stopLon.isNullOrBlank()
-                    || it.stopLat == "0" || it.stopLon == "0"
+            it.hasInvalidCoords()
         }
     }
     

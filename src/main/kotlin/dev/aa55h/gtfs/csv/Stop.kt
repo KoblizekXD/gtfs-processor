@@ -15,6 +15,11 @@ data class Stop(
     var wheelchairBoarding: String?,
     var platformCode: String?
 ) {
+    fun hasInvalidCoords(): Boolean {
+        return stopLat.isNullOrBlank() || stopLon.isNullOrBlank() ||
+                stopLat == "0" || stopLon == "0"
+    }
+    
     companion object {
         fun fromArray(values: Array<String>): Stop {
             return Stop(

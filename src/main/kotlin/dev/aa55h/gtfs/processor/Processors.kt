@@ -1,6 +1,7 @@
 package dev.aa55h.gtfs.processor
 
 import dev.aa55h.gtfs.csv.GeocodeQuery
+import dev.aa55h.gtfs.csv.Stop
 import dev.aa55h.gtfs.csv.StopsFile
 import dev.aa55h.gtfs.csv.queryGeocode
 import java.nio.file.Files
@@ -18,43 +19,68 @@ class StripLinesProcessor(val toRemove: Set<String>) : Processor {
     }
 }
 
-class FixStopCoordsProcessor(val apiKey: String, val cache: MutableMap<String, Pair<String, String>> = mutableMapOf()) : Processor {
+class FixStopCoordsProcessor(
+    val apiKey: String, 
+    val cache: MutableMap<String, Pair<String, String>> = mutableMapOf(),
+    val strategy: Strategy = Strategy.FIX,
+    // When strategy is FIX, this strategy will be used to handle stops that could not be fixed, not used otherwise
+    val fixStrategy: Strategy = Strategy.REMOVE
+) : Processor {
+    
+    private var fixed = 0
+    private val failed: MutableList<String> = mutableListOf()
+    
+    // Assumes cache has been already tried
+    private fun processInvalidStop(stop: Stop, strategy: Strategy): Stop? {
+        return when (strategy) {
+            Strategy.FIX -> {
+                val geocode = queryGeocode(apiKey, GeocodeQuery(stop.stopName!!))
+                val found = geocode.items.find { it.type == "poi" }
+                if (found == null) {
+                    return processInvalidStop(stop, fixStrategy)
+                }
+                stop.stopLat = found.position.lat.toString()
+                stop.stopLon = found.position.lon.toString()
+                cache[stop.stopName!!] = stop.stopLat!! to stop.stopLon!!
+                fixed++
+                return stop
+            }
+            Strategy.SKIP -> {
+                failed.add(stop.stopName ?: "Unknown Stop")
+                stop
+            }
+            Strategy.REMOVE -> {
+                failed.add(stop.stopName ?: "Unknown Stop")
+                null
+            }
+        }
+    }
+    
     override fun process(input: Path) {
+        failed.clear()
+        fixed = 0
         if (input.fileName.toString() == "stops.txt") {
             val stops = StopsFile(input)
-            var invalid = 0
-            stops.stops = stops.stops.parallelStream().filter {
-                if (it.stopLat == "0" || it.stopLon == "0") {
-                    val resulting = cache.getOrElse(it.stopName!!) {
-                        val geocode = queryGeocode(apiKey, GeocodeQuery(it.stopName ?: "Undefined"))
-                        if (geocode.items.isEmpty()) {
-                            invalid++
-                            return@filter false
-                        } else {
-                            val res = geocode.items.find { it.type == "poi" }
-                                /*.getOrElse(0) { _ ->
-                                    println("[FixStopCoordsProcessor][WARN] No POI found for stop: ${it.stopName}, using first result")
-                                    invalid++
-                                    return@getOrElse geocode.items[0]
-                                }*/
-                            if (res == null) {
-                                invalid++
-                                return@filter false
-                            }
-                            it.stopLat = res.position.lat.toString()
-                            it.stopLon = res.position.lon.toString()
-                            cache[it.stopName!!] = it.stopLat!! to it.stopLon!!
-                            println("[FixStopCoordsProcessor] Fixed stop: ${it.stopName} to coords: ${it.stopLat}, ${it.stopLon}")
-                            return@getOrElse it.stopLat!! to it.stopLon!!
-                        }
-                    }
-                    it.stopLat = resulting.first
-                    it.stopLon = resulting.second
-                }
-                return@filter true
-            }.toList()
-            println("[FixStopCoordsProcessor] Could not fix $invalid out of ${stops.noGpsStops.size} stop coordinates in ${input.fileName}")
+            stops.stops.map { stop ->
+                return@map if (stop.hasInvalidCoords()) {
+                    val cached = cache[stop.stopName]
+                    if (cached != null) {
+                        stop.stopLat = cached.first
+                        stop.stopLon = cached.second
+                        fixed++
+                        stop
+                    } else processInvalidStop(stop, strategy)
+                } else stop
+            }.filterNotNull()
+            println("[FixStopCoordsProcessor] Fixed $fixed stops, failed to fix $failed stops")
             stops.writeTo(input)
+            Files.write(input.resolveSibling("failed-stops.txt"), failed.map { it + "\n" })
         }
+    }
+    
+    enum class Strategy {
+        FIX, // Attempt to retrieve coordinates from cache, if not found, query geocode API
+        SKIP, // Attempt to retrieve coordinates from cache, if not found, skip the stop(keeping 0,0 coordinates)
+        REMOVE // Attempt to retrieve coordinates from cache, if not found, remove the stop from the file
     }
 }

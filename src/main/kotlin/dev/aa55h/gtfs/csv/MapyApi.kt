@@ -13,7 +13,6 @@ data class GeocodeQuery(
     val query: String,
     val lang: String = "cs",
     val limit: Int = 5,
-    val locality: String = "cz",
     val type: String = "poi"
 )
 
@@ -35,7 +34,8 @@ data class GeocodeResponse(
 )
 
 fun queryGeocode(apiKey: String, queryParams: GeocodeQuery): GeocodeResponse {
-    val url = "$baseDomain/v1/geocode?query=${URLEncoder.encode(queryParams.query, StandardCharsets.UTF_8)}&lang=${queryParams.lang}&limit=${queryParams.limit}&locality=${queryParams.locality}&type=${queryParams.type}"
+    // println("[MapyApi] Querying geocode for '${queryParams.query}' with lang '${queryParams.lang}', limit ${queryParams.limit}, type '${queryParams.type}'")
+    val url = "$baseDomain/v1/geocode?query=${URLEncoder.encode(queryParams.query, StandardCharsets.UTF_8)}&lang=${queryParams.lang}&limit=${queryParams.limit}&type=${queryParams.type}"
     val request = Request.Builder()
         .get()
         .url(url)
