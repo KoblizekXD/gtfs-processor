@@ -10,11 +10,13 @@ import java.nio.file.Path
 class StripLinesProcessor(val toRemove: Set<String>) : Processor {
     override fun process(input: Path) {
         val linesToKeep = mutableListOf<String>()
+        var removed = 0
         Files.lines(input).parallel().forEachOrdered {
             if (it !in toRemove) {
                 linesToKeep.add(it)
-            }
+            } else removed++
         }
+        println("[StripLinesProcessor] Removed $removed lines from ${input.fileName}")
         Files.write(input, linesToKeep)
     }
 }
