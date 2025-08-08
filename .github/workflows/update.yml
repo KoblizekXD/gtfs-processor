@@ -42,7 +42,7 @@ jobs:
       - name: Upload artifact
         run: |
           cd gtfs-branch
-          cp ./files/$(date +'%Y-%m-%d').zip ./files/latest.zip
+          mv ./files/$(date +'%Y-%m-%d').zip ./files/latest.zip
           git add -A
           git commit -m "📦 Update GTFS data $(date +'%Y-%m-%d')" || echo "No changes to commit"
           git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gtfs
