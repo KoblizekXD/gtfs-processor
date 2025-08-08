@@ -21,6 +21,21 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
 }
+
 kotlin {
     jvmToolchain(24)
+}
+
+tasks.register<JavaExec>("updateGtfs") {
+    group = "application"
+    description = "Update GTFS data"
+    
+    mainClass.set("dev.aa55h.gtfs.MainKt")
+    
+    classpath = sourceSets["main"].runtimeClasspath
+
+    // Allow passing program args with: ./gradlew runGtfs --args="foo bar"
+    if (project.hasProperty("args")) {
+        args = (project.property("args") as String).split("\\s+".toRegex())
+    }
 }

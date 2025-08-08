@@ -26,8 +26,8 @@ fun main(args: Array<String>) {
     ).map { it.line.toString() }
     val coordCache = loadCoordCache(Path(args[2]))
     GtfsProcessor(Path(args[0]), Path(args[1]))
-        .processor(StripLinesProcessor(lines.toSet()))
-        .processor(FixStopCoordsProcessor(args[3], coordCache))
+        .processor(StripLinesProcessor(lines))
+        .processor(FixStopCoordsProcessor(args[3], coordCache, strategy = FixStopCoordsProcessor.Strategy.REMOVE))
         .execute()
     saveCoordCache(Path(args[2]), coordCache)
 }
@@ -47,7 +47,7 @@ fun loadCoordCache(path: Path): MutableMap<String, Pair<String, String>> {
 
 fun saveCoordCache(path: Path, cache: Map<String, Pair<String, String>>) {
     path.toFile().bufferedWriter().use { writer ->
-        writer.write("stop\tlatitude\tlongtitude\n")
+        writer.write("stop\tlatitude\tlongitude\n")
         cache.forEach { (key, value) ->
             writer.write("$key\t${value.first}\t${value.second}\n")
         }

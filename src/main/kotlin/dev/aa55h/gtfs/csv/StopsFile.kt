@@ -1,8 +1,10 @@
 package dev.aa55h.gtfs.csv
 
 import com.opencsv.CSVReader
+import com.opencsv.CSVWriter
 import java.nio.file.Path
 import kotlin.io.path.copyTo
+import kotlin.io.path.writer
 
 /**
  * Parse GTFS stops.txt file.
@@ -26,6 +28,27 @@ data class StopsFile(val path: Path) {
     }
     
     fun writeTo(output: Path) {
-        path.copyTo(output, overwrite = true)
+        CSVWriter(output.writer()).use { 
+            it.writeNext(header.split(",").toTypedArray())
+            stops.forEach { stop ->
+                it.writeNext(
+                    arrayOf(
+                        stop.stopId ?: "",
+                        stop.stopCode ?: "",
+                        stop.stopName ?: "",
+                        stop.stopDesc ?: "",
+                        stop.stopLat ?: "",
+                        stop.stopLon ?: "",
+                        stop.zoneId ?: "",
+                        stop.stopUrl ?: "",
+                        stop.locationType ?: "",
+                        stop.parentStation ?: "",
+                        stop.stopTimezone ?: "",
+                        stop.wheelchairBoarding ?: "",
+                        stop.platformCode ?: ""
+                    )
+                )
+            }
+        }
     }
 }

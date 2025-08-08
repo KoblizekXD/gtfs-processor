@@ -7,14 +7,18 @@ import dev.aa55h.gtfs.csv.queryGeocode
 import java.nio.file.Files
 import java.nio.file.Path
 
-class StripLinesProcessor(val toRemove: Set<String>) : Processor {
+class StripLinesProcessor(val toRemove: List<String>) : Processor {
     override fun process(input: Path) {
         val linesToKeep = mutableListOf<String>()
         var removed = 0
-        Files.lines(input).parallel().forEachOrdered {
-            if (it !in toRemove) {
-                linesToKeep.add(it)
-            } else removed++
+        Files.lines(input).parallel().forEachOrdered { inputLine ->
+            toRemove.any { inputLine.contains(it) }.let { shouldRemove ->
+                if (shouldRemove) {
+                    removed++
+                } else {
+                    linesToKeep.add(inputLine)
+                }
+            }
         }
         println("[StripLinesProcessor] Removed $removed lines from ${input.fileName}")
         Files.write(input, linesToKeep)
