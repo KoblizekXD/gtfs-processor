@@ -36,5 +36,5 @@ jobs:
         run: |
           cd gtfs-branch
           chmod +x gradlew
-          ./gradlew runGtfs --args="../input/gtfs.zip ./files/$(date +'%Y-%m-%d').zip ../cache.tsv ${{ secrets.MAPYCZ_API_KEY }}"
+          ./gradlew updateGtfs --args="../input/gtfs.zip ./files/$(date +'%Y-%m-%d').zip ../cache.tsv ${{ secrets.MAPYCZ_API_KEY }}"
           git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gtfs
