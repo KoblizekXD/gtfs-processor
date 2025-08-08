@@ -40,6 +40,6 @@ jobs:
           chmod +x gradlew
           ./gradlew updateGtfs --args="../input.zip ./files/$(date +'%Y-%m-%d').zip ../cache.tsv ${{ secrets.MAPYCZ_API_KEY }}"
       - name: Upload artifact
-        run: : |
+        run: |
           cp ./files/$(date +'%Y-%m-%d').zip ./files/latest.zip
           git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gtfs
