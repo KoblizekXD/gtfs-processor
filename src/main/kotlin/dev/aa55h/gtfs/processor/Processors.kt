@@ -9,17 +9,14 @@ import java.nio.file.Path
 
 class StripLinesProcessor(val toRemove: Set<String>) : Processor {
     override fun process(input: Path) {
-        val lines = Files.lines(input).use { stream ->
-            stream.parallel()
-                .filter { line -> toRemove.none { line.contains(it) } }
-                .toList()
+        val tmp = Files.createTempFile("temp", ".txt")
+        Files.lines(input).use { stream ->
+            Files.newBufferedWriter(tmp).use { writer ->
+                stream.filter { line -> toRemove.none { line.contains(it) } }
+                    .forEach { writer.write(it + System.lineSeparator()) }
+            }
         }
-
-        val totalLines = Files.lines(input).count()
-        val removed = totalLines - lines.size
-
-        println("[StripLinesProcessor] Removed $removed lines from ${input.fileName}")
-        Files.write(input, lines)
+        Files.move(tmp, input, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
     }
 }
 
