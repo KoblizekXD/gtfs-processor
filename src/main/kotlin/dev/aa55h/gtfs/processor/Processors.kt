@@ -9,9 +9,11 @@ import java.nio.file.Path
 
 class StripLinesProcessor(val toRemove: Set<String>) : Processor {
     override fun process(input: Path) {
-        val lines = Files.lines(input).parallel()
-            .filter { line -> toRemove.none { line.contains(it) } }
-            .toList()
+        val lines = Files.lines(input).use { stream ->
+            stream.parallel()
+                .filter { line -> toRemove.none { line.contains(it) } }
+                .toList()
+        }
 
         val totalLines = Files.lines(input).count()
         val removed = totalLines - lines.size
