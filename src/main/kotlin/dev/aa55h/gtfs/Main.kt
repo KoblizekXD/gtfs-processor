@@ -26,7 +26,7 @@ fun main(args: Array<String>) {
     ).map { it.line.toString() }
     val coordCache = loadCoordCache(Path(args[2]))
     GtfsProcessor(Path(args[0]), Path(args[1]))
-        .processor(StripLinesProcessor(lines))
+        .processor(StripLinesProcessor(lines.toSet()))
         .processor(FixStopCoordsProcessor(args[3], coordCache, strategy = FixStopCoordsProcessor.Strategy.REMOVE))
         .execute()
     saveCoordCache(Path(args[2]), coordCache)

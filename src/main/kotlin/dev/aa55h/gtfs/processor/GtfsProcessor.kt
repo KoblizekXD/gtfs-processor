@@ -33,6 +33,7 @@ data class GtfsProcessor(
             }
         }
         println("[GtfsProcessor] Zipping processed GTFS data to ${output.toAbsolutePath()}")
+        output.parent.toFile().mkdirs()
         inputting.packageToZip(output)
         inputting.deleteRecursively()
         println("[GtfsProcessor] Processed GTFS data saved to ${output.toAbsolutePath()}")
