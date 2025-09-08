@@ -45,7 +45,7 @@ jobs:
       - name: Upload artifact
         run: |
           cd gtfs-branch
-          gtfsclean ./files/$(date +'%Y-%m-%d').zip ./files/latest.zip
+          gtfsclean --fix ./files/$(date +'%Y-%m-%d').zip ./files/latest.zip
           rm ./files/$(date +'%Y-%m-%d').zip
           git add -A
           git commit -m "📦 Update GTFS data $(date +'%Y-%m-%d')" || echo "No changes to commit"
