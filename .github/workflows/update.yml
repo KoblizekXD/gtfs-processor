@@ -33,16 +33,20 @@ jobs:
           ./get-input.sh
           
           git clone --branch gtfs --single-branch https://github.com/${{ github.repository }}.git gtfs-branch
-      
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '^1.13.1'
       - name: Run Gradle task to update GTFS data
         run: |
           cd gtfs-branch
           chmod +x gradlew
           ./gradlew updateGtfs --args="../input.zip ./files/$(date +'%Y-%m-%d').zip ../cache.tsv ${{ secrets.MAPYCZ_API_KEY }}"
+      - run: go install github.com/public-transport/gtfsclean@latest
       - name: Upload artifact
         run: |
           cd gtfs-branch
-          mv ./files/$(date +'%Y-%m-%d').zip ./files/latest.zip
+          gtfsclean ./files/$(date +'%Y-%m-%d').zip ./files/latest.zip
+          rm ./files/$(date +'%Y-%m-%d').zip
           git add -A
           git commit -m "📦 Update GTFS data $(date +'%Y-%m-%d')" || echo "No changes to commit"
           git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git gtfs

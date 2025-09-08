@@ -8,6 +8,8 @@ import java.util.zip.ZipFile
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.deleteRecursively
 
+val inOrder = listOf("routes.txt")
+
 data class GtfsProcessor(
     val input: Path,
     var output: Path,
@@ -27,13 +29,19 @@ data class GtfsProcessor(
             zip.extract(inputting)
         }
         println("[GtfsProcessor] Processing GTFS data in $inputting")
+        Files.list(inputting).forEach { file ->
+            processors.forEach { it.requires(file) }
+        }
+        
         Files.list(inputting).parallel().forEach { file ->
             processors.forEach {
-                it.process(file)
+                if (!it.skip(file))
+                    it.process(file)
             }
         }
+
         println("[GtfsProcessor] Zipping processed GTFS data to ${output.toAbsolutePath()}")
-        output.parent.toFile().mkdirs()
+        output.toAbsolutePath().parent.toFile().mkdirs()
         inputting.packageToZip(output)
         inputting.deleteRecursively()
         println("[GtfsProcessor] Processed GTFS data saved to ${output.toAbsolutePath()}")
@@ -42,6 +50,12 @@ data class GtfsProcessor(
 
 fun interface Processor {
     fun process(input: Path)
+    fun skip(input: Path): Boolean {
+        return false
+    }
+    fun requires(input: Path) {
+        
+    }
 }
 
 fun main() {

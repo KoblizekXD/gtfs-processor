@@ -27,6 +27,8 @@ data class StopsFile(val path: Path) {
         }
     }
     
+    fun getValid(stopName: String): Stop = stops.first { it.stopName == stopName && !it.hasInvalidCoords() }
+    
     fun writeTo(output: Path) {
         CSVWriter(output.writer()).use { 
             it.writeNext(header.split(",").toTypedArray())

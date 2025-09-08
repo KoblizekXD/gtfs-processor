@@ -1,18 +1,39 @@
 package dev.aa55h.gtfs.processor
 
+import com.opencsv.CSVReader
 import dev.aa55h.gtfs.csv.GeocodeQuery
 import dev.aa55h.gtfs.csv.Stop
 import dev.aa55h.gtfs.csv.StopsFile
 import dev.aa55h.gtfs.csv.queryGeocode
 import java.nio.file.Files
 import java.nio.file.Path
+import kotlin.io.path.reader
 
 class StripLinesProcessor(val toRemove: Set<String>) : Processor {
+    val routeIds = mutableSetOf<String>()
+    val agencyIds = mutableSetOf<String>()
+    
+    override fun requires(input: Path) {
+        if (input.fileName.toString() != "routes.txt") return
+
+        CSVReader(input.reader()).use { csvReader ->
+            val header = csvReader.readNext() ?: return
+            require(header.contains("route_long_name")) { "Input file does not contain route_long_name column" }
+            
+            csvReader.readAll().filter { toRemove.any { rem -> it[2].contains(rem) } }.forEach {
+                routeIds.add(it[0])
+                agencyIds.add(it[1])
+            }
+        }
+        
+        println("[StripLinesProcessor] Needs to remove ${routeIds.size} routes from ${input.parent}, belonging to ${agencyIds.size} agencies")
+    }
+    
     override fun process(input: Path) {
         val tmp = Files.createTempFile("temp", ".txt")
         Files.lines(input).use { stream ->
             Files.newBufferedWriter(tmp).use { writer ->
-                stream.filter { line -> toRemove.none { line.contains(it) } }
+                stream.filter { line -> routeIds.none { line.contains(it) } }
                     .forEach { writer.write(it + System.lineSeparator()) }
             }
         }
@@ -36,7 +57,7 @@ class FixStopCoordsProcessor(
     private fun processInvalidStop(stop: Stop, strategy: Strategy): Stop? {
         return when (strategy) {
             Strategy.FIX -> {
-                val geocode = queryGeocode(apiKey, GeocodeQuery(stop.stopName!!))
+                val geocode = queryGeocode(apiKey, GeocodeQuery("zastávka ${stop.stopName!!}"))
                 val found = geocode.items.find { it.type == "poi" }
                 if (found == null) {
                     return processInvalidStop(stop, fixStrategy)
@@ -61,24 +82,26 @@ class FixStopCoordsProcessor(
     override fun process(input: Path) {
         failed.clear()
         fixed = 0
-        if (input.fileName.toString() == "stops.txt") {
-            val stops = StopsFile(input)
-            stops.stops = stops.stops.map { stop ->
-                return@map if (stop.hasInvalidCoords()) {
-                    val cached = cache[stop.stopName]
-                    if (cached != null) {
-                        stop.stopLat = cached.first
-                        stop.stopLon = cached.second
-                        fixed++
-                        stop
-                    } else processInvalidStop(stop, strategy)
-                } else stop
-            }.filterNotNull()
-            println("[FixStopCoordsProcessor] Fixed $fixed stops, failed to fix $failed stops")
-            stops.writeTo(input)
-        }
+        val stops = StopsFile(input)
+        stops.stops = stops.stops.map { stop ->
+            return@map if (stop.hasInvalidCoords()) {
+                val cached = cache[stop.stopName]
+                if (cached != null) {
+                    stop.stopLat = cached.first
+                    stop.stopLon = cached.second
+                    fixed++
+                    stop
+                } else processInvalidStop(stop, strategy)
+            } else stop
+        }.filterNotNull()
+        println("[FixStopCoordsProcessor] Fixed $fixed stops, failed to fix $failed stops")
+        stops.writeTo(input)
     }
-    
+
+    override fun skip(input: Path): Boolean {
+        return input.fileName.toString() != "stops.txt"
+    }
+
     enum class Strategy {
         FIX, // Attempt to retrieve coordinates from cache, if not found, query geocode API
         SKIP, // Attempt to retrieve coordinates from cache, if not found, skip the stop(keeping 0,0 coordinates)
