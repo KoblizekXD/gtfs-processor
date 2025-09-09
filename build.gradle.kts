@@ -15,6 +15,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.19.2")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.19.2")
     implementation("com.squareup.okhttp3:okhttp:5.1.0")
+    implementation("org.ahocorasick:ahocorasick:0.6.3")
     testImplementation(kotlin("test"))
 }
 
