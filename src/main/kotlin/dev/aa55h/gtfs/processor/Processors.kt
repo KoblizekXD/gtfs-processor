@@ -10,7 +10,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.reader
 
-class StripLinesProcessor(val toRemove: Set<String>) : Processor {
+class StripLinesProcessor(val toRemove: Set<String>, val startingWith: Set<String> = setOf()) : Processor {
     val routeIds = mutableSetOf<String>()
     lateinit var trie: Trie
     
@@ -21,7 +21,8 @@ class StripLinesProcessor(val toRemove: Set<String>) : Processor {
             val header = csvReader.readNext() ?: return
             require(header.contains("route_long_name")) { "Input file does not contain route_long_name column" }
             
-            csvReader.readAll().filter { toRemove.any { rem -> it[2] == rem } }.forEach {
+            csvReader.readAll().filter { toRemove.any { rem -> it[2] == rem } 
+                    || startingWith.any { rem -> it[2].startsWith(rem) } }.forEach {
                 routeIds.add(it[0])
             }
         }
