@@ -5,6 +5,7 @@ import dev.aa55h.gtfs.lines.transportOptions
 import dev.aa55h.gtfs.processor.FixStopCoordsProcessor
 import dev.aa55h.gtfs.processor.GtfsProcessor
 import dev.aa55h.gtfs.processor.StripLinesProcessor
+import dev.aa55h.gtfs.processor.ZollMakeUnboardableProcessor
 import java.nio.file.Path
 import kotlin.io.path.Path
 
@@ -39,6 +40,7 @@ fun main(args: Array<String>) {
     GtfsProcessor(Path(args[0]), Path(args[1]))
         .processor(StripLinesProcessor(lines.toSet(), startingWith))
         .processor(FixStopCoordsProcessor(args[3], coordCache, strategy = FixStopCoordsProcessor.Strategy.REMOVE))
+        .processor(ZollMakeUnboardableProcessor())
         .execute()
     saveCoordCache(Path(args[2]), coordCache)
 }
