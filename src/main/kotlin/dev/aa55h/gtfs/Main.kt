@@ -24,9 +24,20 @@ fun main(args: Array<String>) {
             transportOptions["Integrovaná doprava Zlínského kraje"]!!,
         )
     ).map { it.line.toString() }
+    val startingWith = setOf(
+        "199",
+        "205",
+        "289",
+        "737",
+        "755",
+        "805",
+        "825",
+        "826",
+        "835"
+    )
     val coordCache = loadCoordCache(Path(args[2]))
     GtfsProcessor(Path(args[0]), Path(args[1]))
-        .processor(StripLinesProcessor(lines.toSet()))
+        .processor(StripLinesProcessor(lines.toSet(), startingWith))
         .processor(FixStopCoordsProcessor(args[3], coordCache, strategy = FixStopCoordsProcessor.Strategy.REMOVE))
         .execute()
     saveCoordCache(Path(args[2]), coordCache)
