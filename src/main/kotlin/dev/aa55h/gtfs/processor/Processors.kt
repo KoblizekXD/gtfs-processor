@@ -1,6 +1,7 @@
 package dev.aa55h.gtfs.processor
 
 import com.opencsv.CSVReader
+import com.opencsv.CSVWriter
 import dev.aa55h.gtfs.csv.GeocodeQuery
 import dev.aa55h.gtfs.csv.Stop
 import dev.aa55h.gtfs.csv.StopsFile
@@ -8,7 +9,10 @@ import dev.aa55h.gtfs.csv.queryGeocode
 import org.ahocorasick.trie.Trie
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING
+import kotlin.io.path.bufferedWriter
 import kotlin.io.path.reader
+import kotlin.io.path.writer
 
 class StripLinesProcessor(val toRemove: Set<String>, val startingWith: Set<String> = setOf()) : Processor {
     val routeIds = mutableSetOf<String>()
@@ -39,10 +43,53 @@ class StripLinesProcessor(val toRemove: Set<String>, val startingWith: Set<Strin
                     .forEach { writer.write(it + System.lineSeparator()) }
             }
         }
-        Files.move(tmp, input, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        Files.move(tmp, input, REPLACE_EXISTING)
     }
 }
 
+class ZollMakeUnboardableProcessor(): Processor {
+    
+    val toMarkAsUnboardable: MutableSet<String> = mutableSetOf()
+    lateinit var header: String
+    
+    override fun requires(input: Path) {
+        if (input.fileName.toString() != "stops.txt") return
+        toMarkAsUnboardable.clear()
+        val stops = StopsFile(input)
+        stops.stops.filter { it.stopName?.contains("ZOLL") == true || it.stopName?.contains("CLO") == true }
+            .forEach { toMarkAsUnboardable.add(it.stopId!!) }
+        println("[ZollMakeUnboardableProcessor] Needs to mark ${toMarkAsUnboardable.size} stops as unboardable")
+    }
+
+    override fun process(input: Path) {
+        val inputFile = input.toFile()
+        val tempFile = Files.createTempFile("processed-", ".csv")
+
+        CSVReader(inputFile.bufferedReader()).use { reader ->
+            CSVWriter(tempFile.bufferedWriter()).use { writer ->
+                val headerRow = reader.readNext()
+                writer.writeNext(headerRow)
+
+                var row: Array<String>? = reader.readNext()
+                while (row != null) {
+                    if (row[3] in toMarkAsUnboardable) {
+                        row[6] = "1"
+                        row[7] = "1"
+                        println("[ZollMakeUnboardableProcessor] Marking stop ${row[3]} as unboardable")
+                    }
+                    writer.writeNext(row)
+                    row = reader.readNext()
+                }
+            }
+        }
+        
+        Files.move(tempFile, input, REPLACE_EXISTING)
+    }
+
+    override fun skip(input: Path): Boolean {
+        return input.fileName.toString() != "stop_times.txt"
+    }
+}
 
 class FixStopCoordsProcessor(
     val apiKey: String, 
